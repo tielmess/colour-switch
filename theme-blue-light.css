@@ -1,0 +1,39 @@
+/* ============================================
+   theme-blue-light.css
+   ============================================ */
+
+:root {
+    /* Primary colors */
+    --primary-color: #2196F3;
+    --primary-dark: #1976D2;
+    --primary-light: #BBDEFB;
+    
+    /* Background colors */
+    --bg-primary: #FFFFFF;
+    --bg-secondary: #F5F5F5;
+    --bg-tertiary: #E3F2FD;
+    
+    /* Text colors */
+    --text-primary: #212121;
+    --text-secondary: #757575;
+    --text-tertiary: #9E9E9E;
+    
+    /* Border and shadow */
+    --border-color: #E0E0E0;
+    --shadow-color: rgba(0, 0, 0, 0.1);
+}
+
+body {
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+}
+
+h1, h2, h3, h4, h5, h6 {
+    color: var(--primary-color);
+}
+
+.demo-box {
+    background-color: var(--bg-tertiary);
+    color: var(--text-primary);
+    border-color: var(--primary-color);
+}

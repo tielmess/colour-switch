@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dual-Layer Theme Switcher</title>
+    
+    <!-- Default theme stylesheet - will be replaced by JavaScript -->
+    <link id="theme-stylesheet" rel="stylesheet" href="theme-blue-light.css">
+    
+    <style>
+        /* Base styles that remain consistent across all themes */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            transition: background-color 0.3s ease, color 0.3s ease;
+            padding: 20px;
+        }
+        
+        .theme-controls {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            min-width: 200px;
+            z-index: 1000;
+        }
+        
+        .control-group {
+            margin-bottom: 15px;
+        }
+        
+        .control-group:last-child {
+            margin-bottom: 0;
+        }
+        
+        .control-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            font-size: 14px;
+            color: #333;
+        }
+        
+        .theme-select {
+            width: 100%;
+            padding: 8px 12px;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+            background: white;
+            cursor: pointer;
+            transition: border-color 0.2s ease;
+        }
+        
+        .theme-select:hover {
+            border-color: #999;
+        }
+        
+        .theme-select:focus {
+            outline: none;
+            border-color: #4CAF50;
+        }
+        
+        .mode-toggle {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        .toggle-switch {
+            position: relative;
+            width: 50px;
+            height: 26px;
+            background: #ccc;
+            border-radius: 13px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+        
+        .toggle-switch.active {
+            background: #4CAF50;
+        }
+        
+        .toggle-slider {
+            position: absolute;
+            top: 3px;
+            left: 3px;
+            width: 20px;
+            height: 20px;
+            background: white;
+            border-radius: 50%;
+            transition: transform 0.3s ease;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+        
+        .toggle-switch.active .toggle-slider {
+            transform: translateX(24px);
+        }
+        
+        .mode-label {
+            font-size: 13px;
+            color: #666;
+        }
+        
+        /* Demo content styles */
+        .content {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+        
+        h1 {
+            margin-bottom: 20px;
+        }
+        
+        p {
+            line-height: 1.6;
+            margin-bottom: 15px;
+        }
+        
+        .demo-box {
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            border: 2px solid currentColor;
+        }
+    </style>
+</head>
+<body>
+    <!-- Theme Controls Panel -->
+    <div class="theme-controls">
+        <div class="control-group">
+            <label for="color-theme-select">Color Theme</label>
+            <select id="color-theme-select" class="theme-select">
+                <option value="blue">Blue Ocean</option>
+                <option value="green">Forest Green</option>
+                <option value="purple">Royal Purple</option>
+                <option value="orange">Sunset Orange</option>
+            </select>
+        </div>
+        
+        <div class="control-group">
+            <div class="mode-toggle">
+                <span class="mode-label">Light / Dark</span>
+                <div id="mode-toggle" class="toggle-switch" role="button" aria-label="Toggle dark mode" tabindex="0">
+                    <div class="toggle-slider"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Demo Content -->
+    <div class="content">
+        <h1>Dual-Layer Theme Switcher Demo</h1>
+        <p>
+            This page demonstrates a sophisticated theme switching system that supports both color theme selection 
+            and independent light/dark mode toggling. All preferences are automatically saved and will persist 
+            across browser sessions.
+        </p>
+        
+        <div class="demo-box">
+            <h2>How It Works</h2>
+            <p>
+                The system combines your selected color theme (Blue, Green, Purple, or Orange) with your 
+                preferred mode (Light or Dark) to load the appropriate CSS file dynamically.
+            </p>
+        </div>
+        
+        <p>
+            Try switching between different color themes and toggling the light/dark mode using the controls 
+            in the top-right corner. Your preferences will be remembered even after you close and reopen this page.
+        </p>
+    </div>
+
+    <script>
+        // ============================================
+        // THEME SWITCHER - Dual-Layer Implementation
+        // ============================================
+        
+        (function() {
+            'use strict';
+            
+            // Configuration
+            const CONFIG = {
+                themeStylesheetId: 'theme-stylesheet',
+                colorThemeKey: 'user-color-theme',
+                modeKey: 'user-mode',
+                defaultColorTheme: 'blue',
+                defaultMode: 'light',
+                availableThemes: ['blue', 'green', 'purple', 'orange'],
+                cssPath: '', // Add path prefix if CSS files are in a subdirectory, e.g., 'css/'
+            };
+            
+            // DOM Elements
+            const elements = {
+                stylesheet: null,
+                colorSelect: null,
+                modeToggle: null,
+            };
+            
+            // Current state
+            let currentColorTheme = CONFIG.defaultColorTheme;
+            let currentMode = CONFIG.defaultMode;
+            
+            /**
+             * Initialize the theme switcher
+             */
+            function init() {
+                // Get DOM elements
+                elements.stylesheet = document.getElementById(CONFIG.themeStylesheetId);
+                elements.colorSelect = document.getElementById('color-theme-select');
+                elements.modeToggle = document.getElementById('mode-toggle');
+                
+                // Verify critical elements exist
+                if (!elements.stylesheet) {
+                    console.error('Theme stylesheet link not found');
+                    return;
+                }
+                
+                // Load saved preferences or use defaults
+                loadPreferences();
+                
+                // Apply the theme immediately (before page content loads)
+                applyTheme();
+                
+                // Set up event listeners
+                setupEventListeners();
+                
+                // Update UI to reflect current state
+                updateUI();
+            }
+            
+            /**
+             * Load preferences from localStorage
+             */
+            function loadPreferences() {
+                try {
+                    // Load color theme preference
+                    const savedColorTheme = localStorage.getItem(CONFIG.colorThemeKey);
+                    if (savedColorTheme && CONFIG.availableThemes.includes(savedColorTheme)) {
+                        currentColorTheme = savedColorTheme;
+                    }
+                    
+                    // Load mode preference
+                    const savedMode = localStorage.getItem(CONFIG.modeKey);
+                    if (savedMode && (savedMode === 'light' || savedMode === 'dark')) {
+                        currentMode = savedMode;
+                    }
+                } catch (e) {
+                    console.warn('localStorage not available:', e);
+                    // Continue with defaults if localStorage fails
+                }
+            }
+            
+            /**
+             * Save preferences to localStorage
+             */
+            function savePreferences() {
+                try {
+                    localStorage.setItem(CONFIG.colorThemeKey, currentColorTheme);
+                    localStorage.setItem(CONFIG.modeKey, currentMode);
+                } catch (e) {
+                    console.warn('Failed to save preferences:', e);
+                }
+            }
+            
+            /**
+             * Apply the current theme by updating the stylesheet href
+             */
+            function applyTheme() {
+                // Construct the filename: theme-{color}-{mode}.css
+                const filename = `theme-${currentColorTheme}-${currentMode}.css`;
+                const fullPath = CONFIG.cssPath + filename;
+                
+                // Update the stylesheet href
+                elements.stylesheet.href = fullPath;
+                
+                // Optional: Add data attributes to html element for additional CSS targeting
+                document.documentElement.setAttribute('data-color-theme', currentColorTheme);
+                document.documentElement.setAttribute('data-mode', currentMode);
+            }
+            
+            /**
+             * Set up event listeners for theme controls
+             */
+            function setupEventListeners() {
+                // Color theme selector
+                if (elements.colorSelect) {
+                    elements.colorSelect.addEventListener('change', handleColorThemeChange);
+                }
+                
+                // Mode toggle
+                if (elements.modeToggle) {
+                    elements.modeToggle.addEventListener('click', handleModeToggle);
+                    
+                    // Keyboard accessibility
+                    elements.modeToggle.addEventListener('keydown', function(e) {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            handleModeToggle();
+                        }
+                    });
+                }
+            }
+            
+            /**
+             * Handle color theme change
+             */
+            function handleColorThemeChange(e) {
+                const newTheme = e.target.value;
+                
+                if (CONFIG.availableThemes.includes(newTheme)) {
+                    currentColorTheme = newTheme;
+                    applyTheme();
+                    savePreferences();
+                }
+            }
+            
+            /**
+             * Handle mode toggle
+             */
+            function handleModeToggle() {
+                // Toggle between light and dark
+                currentMode = currentMode === 'light' ? 'dark' : 'light';
+                
+                // Apply the new theme
+                applyTheme();
+                
+                // Save preference
+                savePreferences();
+                
+                // Update UI
+                updateUI();
+            }
+            
+            /**
+             * Update UI controls to reflect current state
+             */
+            function updateUI() {
+                // Update color select dropdown
+                if (elements.colorSelect) {
+                    elements.colorSelect.value = currentColorTheme;
+                }
+                
+                // Update mode toggle appearance
+                if (elements.modeToggle) {
+                    if (currentMode === 'dark') {
+                        elements.modeToggle.classList.add('active');
+                        elements.modeToggle.setAttribute('aria-checked', 'true');
+                    } else {
+                        elements.modeToggle.classList.remove('active');
+                        elements.modeToggle.setAttribute('aria-checked', 'false');
+                    }
+                }
+            }
+            
+            /**
+             * Public API (optional - for external access)
+             */
+            window.ThemeSwitcher = {
+                setColorTheme: function(theme) {
+                    if (CONFIG.availableThemes.includes(theme)) {
+                        currentColorTheme = theme;
+                        applyTheme();
+                        savePreferences();
+                        updateUI();
+                    }
+                },
+                setMode: function(mode) {
+                    if (mode === 'light' || mode === 'dark') {
+                        currentMode = mode;
+                        applyTheme();
+                        savePreferences();
+                        updateUI();
+                    }
+                },
+                getCurrentTheme: function() {
+                    return {
+                        colorTheme: currentColorTheme,
+                        mode: currentMode
+                    };
+                }
+            };
+            
+            // Initialize when DOM is ready
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', init);
+            } else {
+                init();
+            }
+            
+        })();
+    </script>
+</body>
+</html>
